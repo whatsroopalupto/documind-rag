@@ -1,0 +1,44 @@
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ConversationBufferMemory
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def create_conversation_chain(vectorstore):
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash",
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
+        temperature=0.3
+    )
+
+    memory = ConversationBufferMemory(
+        memory_key="chat_history",
+        return_messages=True,
+        output_key="answer"
+    )
+
+    chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=vectorstore.as_retriever(search_kwargs={"k": 4}),
+        memory=memory,
+        return_source_documents=True
+    )
+
+    return chain
+
+
+def get_answer(chain, question):
+    result = chain({"question": question})
+    answer = result["answer"]
+
+    sources = []
+    for doc in result["source_documents"]:
+        source_info = {
+            "page": doc.metadata.get("page", "Unknown"),
+            "file": doc.metadata.get("source", "Unknown file")
+        }
+        sources.append(source_info)
+
+    return answer, sources
