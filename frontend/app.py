@@ -249,8 +249,9 @@ with st.sidebar:
             # Incremental ingestion — only process new files
             # passes existing vectorstore so old chunks are preserved
             vectorstore = ingest_pdfs(
-                temp_paths,
-                existing_vectorstore=st.session_state.vectorstore
+               temp_paths,
+               original_names=new_names,
+               existing_vectorstore=st.session_state.vectorstore
             )
 
             # Update session state
@@ -294,7 +295,7 @@ with st.sidebar:
     st.markdown("""
         <div style="font-size:0.7rem; color:#334155; line-height:1.8;">
             <div>Powered by</div>
-            <div style="color:#475569;">Gemini 1.5 · LangChain · ChromaDB</div>
+            <div style="color:#475569;">Gemini 2.5 · LangChain · ChromaDB</div>
             <br/>
             <div>Government Engineering College</div>
             <div style="color:#475569;">Ajmer · VI Semester · 2026</div>
@@ -341,10 +342,13 @@ else:
                         if key not in seen:
                             seen.add(key)
                             st.markdown(
-                                f"<span style='font-family:IBM Plex Mono,monospace;"
-                                f"font-size:0.72rem; color:#64748b;'>"
-                                f"▸ Page {source['page'] + 1} — "
-                                f"{os.path.basename(source['file'])}</span>",
+                                f"<div style='font-family:IBM Plex Mono,monospace; font-size:0.72rem; color:#64748b; "
+                                f"background:#0d1117; border:1px solid #1e2330; border-radius:6px; "
+                                f"padding:8px 12px; margin:4px 0;'>"
+                                f"<span style='color:#3b82f6;'>▸ {os.path.basename(source['file'])}</span>"
+                                f"<span style='color:#475569;'> · Page {source['page'] + 1} · Line ~{source['line']}</span>"
+                                f"<br/><span style='color:#4b5563; font-size:0.68rem;'>❝ {source['preview']}</span>"
+                                f"</div>",
                                 unsafe_allow_html=True
                             )
 
@@ -369,10 +373,13 @@ else:
                         if key not in seen:
                             seen.add(key)
                             st.markdown(
-                                f"<span style='font-family:IBM Plex Mono,monospace;"
-                                f"font-size:0.72rem; color:#64748b;'>"
-                                f"▸ Page {source['page'] + 1} — "
-                                f"{os.path.basename(source['file'])}</span>",
+                                f"<div style='font-family:IBM Plex Mono,monospace; font-size:0.72rem; color:#64748b; "
+                                f"background:#0d1117; border:1px solid #1e2330; border-radius:6px; "
+                                f"padding:8px 12px; margin:4px 0;'>"
+                                f"<span style='color:#3b82f6;'>▸ {os.path.basename(source['file'])}</span>"
+                                f"<span style='color:#475569;'> · Page {source['page'] + 1} · Line ~{source['line']}</span>"
+                                f"<br/><span style='color:#4b5563; font-size:0.68rem;'>❝ {source['preview']}</span>"
+                                f"</div>",
                                 unsafe_allow_html=True
                             )
 

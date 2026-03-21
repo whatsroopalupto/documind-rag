@@ -1,6 +1,6 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
+from langchain_classic.chains import ConversationalRetrievalChain
+from langchain_classic.memory import ConversationBufferMemory
 import os
 from dotenv import load_dotenv
 
@@ -8,7 +8,7 @@ load_dotenv()
 
 def create_conversation_chain(vectorstore):
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
+        model="gemini-2.5-flash",
         google_api_key=os.getenv("GOOGLE_API_KEY"),
         temperature=0.3
     )
@@ -36,8 +36,10 @@ def get_answer(chain, question):
     sources = []
     for doc in result["source_documents"]:
         source_info = {
-            "page": doc.metadata.get("page", "Unknown"),
-            "file": doc.metadata.get("source", "Unknown file")
+            "page": doc.metadata.get("page", 0),
+            "file": doc.metadata.get("source", "Unknown file"),
+            "line": doc.metadata.get("start_line", 1),
+            "preview": doc.metadata.get("preview", "")
         }
         sources.append(source_info)
 
