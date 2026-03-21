@@ -23,14 +23,15 @@ def create_conversation_chain(vectorstore):
         llm=llm,
         retriever=vectorstore.as_retriever(search_kwargs={"k": 4}),
         memory=memory,
-        return_source_documents=True
+        return_source_documents=True,
+        verbose=False
     )
 
     return chain
 
 
 def get_answer(chain, question):
-    result = chain({"question": question})
+    result = chain.invoke({"question": question})
     answer = result["answer"]
 
     sources = []
