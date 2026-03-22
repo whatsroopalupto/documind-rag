@@ -22,17 +22,40 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
 html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; }
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
+/* ── Header & Sidebar Control Fix ── */
 
-.stApp { background-color: #0d0f12; color: #e2e8f0; }
-
-[data-testid="stSidebar"] {
-    background-color: #111318;
-    border-right: 1px solid #1e2330;
+/* 1. Hide the top decoration line */
+[data-testid="stDecoration"] {
+    display: none;
 }
-[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
+
+/* 2. Hide Main Menu and Footer */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+
+/* 3. INSTEAD OF header {visibility: hidden;}:
+   Makeheader transparent and non-blocking, but keep it 
+   technically "visible" so the sidebar arrow can exist. */
+header[data-testid="stHeader"] {
+    background-color: rgba(0,0,0,0) !important;
+    border: none !important;
+}
+
+/* 4. Style the Arrow (the collapsed control) */
+/* This makes the arrow visible against your dark background */
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    color: #60a5fa !important;
+    background-color: #111318 !important; /* Matches sidebar color */
+    border: 1px solid #1e2330 !important;
+    border-radius: 0 8px 8px 0 !important;
+    top: 10px !important;
+}
+
+[data-testid="collapsedControl"]:hover {
+    background-color: #1e2330 !important;
+    color: #e2e8f0 !important;
+}
 
 .logo-container {
     padding: 1.5rem 0 1rem 0;
@@ -188,6 +211,17 @@ hr { border-color: #1e2330; }
 ::-webkit-scrollbar-track { background: #0d0f12; }
 ::-webkit-scrollbar-thumb { background: #1e2330; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+[data-testid="collapsedControl"] {
+    display: block !important;
+    color: #60a5fa !important;
+    background-color: #1e2330 !important;
+    border-radius: 0 6px 6px 0 !important;
+}
+
+[data-testid="collapsedControl"]:hover {
+    background-color: #2d3748 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
