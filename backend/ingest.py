@@ -75,7 +75,6 @@ def ingest_pdfs(pdf_paths, original_names=None, existing_vectorstore=None):
         vectorstore = Chroma.from_documents(
             documents=new_chunks,
             embedding=embeddings,
-            persist_directory="./chroma_db" # Persists the data locally
         )
     else:
         # If DB exists, just add the new documents
