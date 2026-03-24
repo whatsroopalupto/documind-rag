@@ -9,3 +9,5 @@ pypdf
 streamlit
 python-dotenv
 sentence-transformers
+firebase-admin
+requests
