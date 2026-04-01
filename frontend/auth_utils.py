@@ -8,7 +8,11 @@ from dotenv import load_dotenv
 # Load environment variables from your .env file
 load_dotenv()
 # Look for either FIREBASE_WEB_API_KEY or FIREBASE_API_KEY
-FIREBASE_WEB_API_KEY = os.getenv("FIREBASE_API_KEY") or os.getenv("FIREBASE_WEB_API_KEY")
+# (Checks Streamlit Secrets first for cloud deployment, then falls back to local .env)
+if hasattr(st, "secrets") and "FIREBASE_API_KEY" in st.secrets:
+    FIREBASE_WEB_API_KEY = st.secrets["FIREBASE_API_KEY"]
+else:
+    FIREBASE_WEB_API_KEY = os.getenv("FIREBASE_API_KEY") or os.getenv("FIREBASE_WEB_API_KEY")
 
 # --- DYNAMIC PATHING (To prevent errors) ---
 current_dir = os.path.dirname(__file__)
@@ -20,8 +24,15 @@ key_path = os.path.join(current_dir, key_filename)
 # Initialize Firebase Admin SDK
 if not firebase_admin._apps:
     try:
-        # Check if key file exists to prevent crashing
-        if os.path.exists(key_path):
+        # 1. First, check if deployment secrets exist (Streamlit Cloud)
+        if hasattr(st, "secrets") and "firebase" in st.secrets:
+            # We convert the secret to a strict standard dictionary to avoid proxy errors
+            cred_dict = dict(st.secrets["firebase"])
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+            
+        # 2. Otherwise, fall back to the local .json file
+        elif os.path.exists(key_path):
             cred = credentials.Certificate(key_path)
             firebase_admin.initialize_app(cred)
     except Exception as e:
