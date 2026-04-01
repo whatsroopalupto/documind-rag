@@ -237,6 +237,10 @@ if "uploaded_names" not in st.session_state:
     st.session_state.uploaded_names = []
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
+if "chat_sessions" not in st.session_state:
+    st.session_state.chat_sessions = {}
+if "current_session_name" not in st.session_state:
+    st.session_state.current_session_name = "Session 1"
 
 # This block cleans up the login/sidebar inputs by removing duplicate browser 
 # icons (like the double password eye) and hiding the 'Press Enter' hint.
@@ -350,39 +354,34 @@ with st.sidebar:
             </div>
         """, unsafe_allow_html=True)
 
-        # Monochrome Navigation Links
-        st.markdown("""
-            <style>
-                .nav-container { display: flex; flex-direction: column; gap: 4px; }
-                .nav-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 14px;
-                    padding: 10px 12px;
-                    color: #94a3b8;
-                    font-size: 0.9rem;
-                    border-radius: 8px;
-                    transition: 0.2s;
-                    cursor: pointer;
-                }
-                .nav-item:hover {
-                    background-color: #1e2330;
-                    color: #f8fafc;
-                }
-                .nav-item svg { stroke: currentColor; }
-            </style>
-            
-            <div class="nav-container">
-                <div class="nav-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                    Home
-                </div>
-                <div class="nav-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    History
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        # Dynamic Chat Sessions History
+        st.markdown("**Previous Sessions**")
+        
+        # Pre-save the current active session if it isn't saved yet but has activity
+        if st.session_state.messages or st.session_state.pdfs_processed:
+            st.session_state.chat_sessions[st.session_state.current_session_name] = {
+                 "messages": list(st.session_state.messages),
+                 "uploaded_names": list(st.session_state.uploaded_names),
+                 "vectorstore": st.session_state.vectorstore,
+                 "chain": st.session_state.chain,
+                 "pdfs_processed": st.session_state.pdfs_processed
+             }
+             
+        if st.session_state.chat_sessions:
+            for session_name in reversed(list(st.session_state.chat_sessions.keys())):
+                # Visually indicate active session with a primary button color
+                btn_type = "primary" if session_name == st.session_state.current_session_name else "secondary"
+                if st.button(f"💬 {session_name}", key=f"btn_{session_name}", type=btn_type, use_container_width=True):
+                    saved = st.session_state.chat_sessions[session_name]
+                    st.session_state.current_session_name = session_name
+                    st.session_state.messages = list(saved["messages"])
+                    st.session_state.uploaded_names = list(saved["uploaded_names"])
+                    st.session_state.vectorstore = saved["vectorstore"]
+                    st.session_state.chain = saved["chain"]
+                    st.session_state.pdfs_processed = saved["pdfs_processed"]
+                    st.rerun()
+        else:
+            st.caption("No chat history yet.")
 
         st.markdown("<hr style='margin: 8px 0px; border-top: 1px solid #31333F;'>", unsafe_allow_html=True)
 
@@ -455,6 +454,21 @@ with st.sidebar:
             st.markdown("<hr style='margin: 10px 0px; border-top: 1px solid #31333F;'>", unsafe_allow_html=True)
             
         if st.sidebar.button("🔄 New Session", use_container_width=True):
+            # Only process if they actually did something in the current session
+            if st.session_state.messages or st.session_state.pdfs_processed:
+                st.session_state.chat_sessions[st.session_state.current_session_name] = {
+                    "messages": list(st.session_state.messages),
+                    "uploaded_names": list(st.session_state.uploaded_names),
+                    "vectorstore": st.session_state.vectorstore,
+                    "chain": st.session_state.chain,
+                    "pdfs_processed": st.session_state.pdfs_processed
+                }
+            
+            # Switch to a fresh identity
+            new_id = len(st.session_state.chat_sessions) + 1
+            st.session_state.current_session_name = f"Session {new_id}"
+            
+            # Wipe active fields
             st.session_state.messages = []
             st.session_state.chain = None
             st.session_state.pdfs_processed = False
