@@ -7,11 +7,15 @@ from dotenv import load_dotenv
 
 # Load environment variables from your .env file
 load_dotenv()
-FIREBASE_WEB_API_KEY = os.getenv("FIREBASE_WEB_API_KEY") # <-- Get from .env
+# Look for either FIREBASE_WEB_API_KEY or FIREBASE_API_KEY
+FIREBASE_WEB_API_KEY = os.getenv("FIREBASE_API_KEY") or os.getenv("FIREBASE_WEB_API_KEY")
 
 # --- DYNAMIC PATHING (To prevent errors) ---
 current_dir = os.path.dirname(__file__)
-key_path = os.path.join(current_dir, "firebase-key.json")
+
+# Get the filename from .env, default to 'firebase-key.json'
+key_filename = os.getenv("FIREBASE_KEY_FILE", "firebase-key.json")
+key_path = os.path.join(current_dir, key_filename)
 
 # Initialize Firebase Admin SDK
 if not firebase_admin._apps:
