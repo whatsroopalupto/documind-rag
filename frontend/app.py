@@ -1,4 +1,5 @@
 import streamlit as st
+from auth_utils import sign_up, login
 import tempfile
 import os
 import sys
@@ -106,7 +107,7 @@ header[data-testid="stHeader"] {
 [data-testid="stChatMessage"] {
     background-color: #111318;
     border: 1px solid #1e2330;
-    border-radius: 12px;
+    border-radius: 12px;   
     padding: 0.8rem 1rem;
     margin-bottom: 0.5rem;
 }
@@ -237,87 +238,223 @@ if "uploaded_names" not in st.session_state:
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
 
+# This block cleans up the login/sidebar inputs by removing duplicate browser 
+# icons (like the double password eye) and hiding the 'Press Enter' hint.
+st.markdown("""
+    <style>
+        /* 1. Remove the duplicate browser eye */
+        input::-ms-reveal, input::-ms-clear { display: none !important; }
+
+        /* 2. Shrink font for a tighter fit */
+        .stTextInput input {
+            font-size: 0.85rem !important;
+            padding: 0.4rem !important;
+        }
+
+        /* 3. Delete the 'Press Enter' clutter and the ghost icon */
+        div[data-testid="InputInstructions"] {
+            display: none !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
+    # 1. TOP SECTION: Logo
     st.markdown("""
-        <div class="logo-container">
-            <div class="logo-title">📄 DocuMind</div>
-            <div class="logo-subtitle">AI Document Expert</div>
+        <div style="padding: 1rem 0 1.5rem 0;">
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 1.5rem; font-weight: 700; color: #60a5fa;">📄 DocuMind</div>
+            <div style="font-size: 0.7rem; color: #64748b; letter-spacing: 2px; text-transform: uppercase;">AI Document Expert</div>
         </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("**Upload Documents**")
-    st.caption("Supports multiple PDFs at once")
+    # 2. AUTHENTICATION CHECK
+    if "logged_in" not in st.session_state or not st.session_state.logged_in:
+        # --- LOGGED OUT VIEW ---
+        mode = st.radio("Access", ["Login", "Sign Up"], label_visibility="collapsed")
+        
+        # 1. ICONIZED EMAIL INPUT (Fixed Spacing)
+        st.markdown("""
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 500;">Email</span>
+            </div>
+        """, unsafe_allow_html=True)
+        email = st.text_input("Email", label_visibility="collapsed")
 
-    uploaded_files = st.file_uploader(
-        label="upload",
-        type=["pdf"],
-        accept_multiple_files=True,
-        label_visibility="collapsed"
-    )
+        # 2. ICONIZED PASSWORD INPUT (Fixed Spacing)
+        st.markdown("""
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px; margin-top: 2px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3-3.5 3.5z"></path></svg>
+                <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 500;">Password</span>
+            </div>
+        """, unsafe_allow_html=True)
+        password = st.text_input("Password", type="password", label_visibility="collapsed")
 
-    # Detect only new files not yet processed
-    new_files = [
-        f for f in (uploaded_files or [])
-        if f.name not in st.session_state.uploaded_names
-    ]
-
-    if new_files:
-        with st.spinner(f"Processing {len(new_files)} new file(s)..."):
-            temp_paths = []
-            new_names = []
-
-            for uploaded_file in new_files:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                    tmp.write(uploaded_file.read())
-                    temp_paths.append(tmp.name)
-                    new_names.append(uploaded_file.name)
-
-            if st.session_state.pdfs_processed:
+# --- LOGIN / SIGN UP LOGIC ---
+        if mode == "Sign Up":
+            # --- FIRST & LAST NAME SECTION ---
+            col1, col2 = st.columns(2)
+            
+            with col1:
                 st.markdown("""
-                    <div class="new-files-banner">
-                        ↻ Updating knowledge base with new files...
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px; margin-top: 5px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 500;">First Name</span>
                     </div>
                 """, unsafe_allow_html=True)
+                first_name = st.text_input("First Name", label_visibility="collapsed")
+                
+            with col2:
+                st.markdown("""
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px; margin-top: 5px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <span style="color: #94a3b8; font-size: 0.9rem; font-weight: 500;">Last Name</span>
+                    </div>
+                """, unsafe_allow_html=True)
+                last_name = st.text_input("Last Name", label_visibility="collapsed")
 
-            # Incremental ingestion — only process new files
-            # passes existing vectorstore so old chunks are preserved
-            vectorstore = ingest_pdfs(
-               temp_paths,
-               original_names=new_names,
-               existing_vectorstore=st.session_state.vectorstore
-            )
+            full_name = f"{first_name} {last_name}"
 
-            # Update session state
-            st.session_state.vectorstore = vectorstore
-            st.session_state.chain = create_conversation_chain(vectorstore)
-            st.session_state.pdfs_processed = True
-            st.session_state.uploaded_names.extend(new_names)
+            if st.button("Create Account", use_container_width=True):
+                from auth_utils import sign_up
+                sign_up(email, password, full_name)
+                
+        else:
+            # --- LOGIN BUTTON ---
+            if st.button("Login", use_container_width=True):
+                with st.spinner("Authenticating..."):
+                    from auth_utils import login
+                    if login(email, password):
+                        st.rerun()
+            
+            st.markdown("---")
+            if st.button("Forgot Password?", key="forgot_pw"):
+                if email:
+                    from auth_utils import reset_password
+                    reset_password(email) 
+                else:
+                    st.warning("Please enter your email address first.")
 
-            # Clean up temp files
-            for path in temp_paths:
-                try:
-                    os.unlink(path)
-                except Exception:
-                    pass
-
-    # Show status once files are loaded
-    if st.session_state.pdfs_processed:
+    else:        
+        # --- LOGGED IN VIEW ---
+        # A. Navigation & Chat History
+        # Search-style box
         st.markdown("""
-            <div class="status-pill">
-                <div class="status-dot"></div>
-                KNOWLEDGE BASE READY
+            <div style="background-color: #1e2330; border-radius: 8px; padding: 8px 12px; margin-bottom: 24px; border: 1px solid #2d3343; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <span style="color: #94a3b8; font-size: 0.85rem;">Search chats</span>
+                </div>
+                <span style="background: #0f172a; padding: 2px 6px; border-radius: 4px; color: #475569; font-size: 0.65rem; border: 1px solid #1e293b;">⌘ K</span>
             </div>
         """, unsafe_allow_html=True)
 
-        for name in st.session_state.uploaded_names:
-            st.markdown(f"""
-                <div class="file-badge">📎 {name}</div>
-            """, unsafe_allow_html=True)
+        # Monochrome Navigation Links
+        st.markdown("""
+            <style>
+                .nav-container { display: flex; flex-direction: column; gap: 4px; }
+                .nav-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    padding: 10px 12px;
+                    color: #94a3b8;
+                    font-size: 0.9rem;
+                    border-radius: 8px;
+                    transition: 0.2s;
+                    cursor: pointer;
+                }
+                .nav-item:hover {
+                    background-color: #1e2330;
+                    color: #f8fafc;
+                }
+                .nav-item svg { stroke: currentColor; }
+            </style>
+            
+            <div class="nav-container">
+                <div class="nav-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    Home
+                </div>
+                <div class="nav-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    History
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
-        st.markdown("---")
+        st.markdown("<hr style='margin: 8px 0px; border-top: 1px solid #31333F;'>", unsafe_allow_html=True)
 
-        if st.button("🔄 New Session"):
+        # B. Document Uploads & Knowledge Base
+        st.markdown("**Upload Documents**")
+        st.caption("Supports multiple PDFs at once")
+
+        uploaded_files = st.file_uploader(
+            label="upload",
+            type=["pdf"],
+            accept_multiple_files=True,
+            label_visibility="collapsed"
+        )
+
+        # Detect only new files not yet processed
+        new_files = [f for f in (uploaded_files or []) if f.name not in st.session_state.uploaded_names]
+
+        if new_files:
+            with st.spinner(f"Processing {len(new_files)} files..."):
+                temp_paths = []
+                new_names = []
+
+                for uploaded_file in new_files:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                        tmp.write(uploaded_file.read())
+                        temp_paths.append(tmp.name)
+                        new_names.append(uploaded_file.name)
+
+                if st.session_state.pdfs_processed:
+                    st.markdown("""
+                        <div class="new-files-banner">
+                            ↻ Updating knowledge base with new files...
+                        </div>
+                    """, unsafe_allow_html=True)
+                            
+            # Incremental ingestion — only process new files
+            # passes existing vectorstore so old chunks are preserved
+                vectorstore = ingest_pdfs(
+                    temp_paths,
+                    original_names=new_names,
+                    existing_vectorstore=st.session_state.vectorstore
+                )
+
+                # Update session state
+                st.session_state.vectorstore = vectorstore
+                st.session_state.chain = create_conversation_chain(vectorstore)
+                st.session_state.pdfs_processed = True
+                st.session_state.uploaded_names.extend(new_names)
+
+                # Clean up temp files
+                for path in temp_paths:
+                    try:
+                        os.unlink(path)
+                    except Exception:
+                        pass
+
+        # Show status once files are loaded
+        if st.session_state.pdfs_processed:
+            st.markdown("""
+                <div class="status-pill">
+                    <div class="status-dot"></div>
+                    KNOWLEDGE BASE READY
+                </div>
+            """, unsafe_allow_html=True)           
+
+            for name in st.session_state.uploaded_names:
+                st.markdown(f"""
+                    <div class="file-badge">📎 {name}</div>
+                """, unsafe_allow_html=True)
+            st.markdown("<hr style='margin: 10px 0px; border-top: 1px solid #31333F;'>", unsafe_allow_html=True)
+            
+        if st.sidebar.button("🔄 New Session", use_container_width=True):
             st.session_state.messages = []
             st.session_state.chain = None
             st.session_state.pdfs_processed = False
@@ -325,7 +462,29 @@ with st.sidebar:
             st.session_state.vectorstore = None
             st.rerun()
 
-    st.markdown("---")
+        st.markdown("<hr style='margin: 10px 0px; border-top: 1px solid #31333F;'>", unsafe_allow_html=True)
+
+        # C. BOTTOM ANCHOR: User Profile Card
+        user_name = st.session_state.user.display_name or "User"
+        user_email = st.session_state.user.email
+        
+        st.markdown(f"""
+            <div style="background-color: #111318; border: 1px solid #1e2330; border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <div style="width: 32px; height: 32px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.9rem;">
+                    {user_name[0].upper()}
+                </div>
+                <div style="overflow: hidden;">
+                    <div style="font-size: 0.9rem; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{user_name}</div>
+                    <div style="font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{user_email}</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Logout", key="logout_btn", use_container_width=True):
+            st.session_state.logged_in = False
+            st.rerun()
+
+    # 3. FOOTER: Institution Info (Bottom-most)
     st.markdown("""
         <div style="font-size:0.7rem; color:#334155; line-height:1.8;">
             <div>Powered by</div>
