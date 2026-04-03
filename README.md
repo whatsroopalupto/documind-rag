@@ -16,7 +16,6 @@
 - [Features](#-features)
 - [Getting Started (Local)](#-getting-started-local)
 - [Cloud Deployment](#-cloud-deployment)
-- [Security Notice](#-security-notice)
 
 ---
 
