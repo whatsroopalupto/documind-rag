@@ -70,7 +70,7 @@ def process_pdfs_to_chunks(pdf_paths, original_names=None):
 
     return all_chunks
 
-def ingest_pdfs(pdf_paths, original_names=None, existing_vectorstore=None):
+def ingest_pdfs(pdf_paths, original_names=None, existing_vectorstore=None, collection_name="langchain"):
     """
     Main entry point to embed chunks and store them in ChromaDB.
     """
@@ -82,6 +82,7 @@ def ingest_pdfs(pdf_paths, original_names=None, existing_vectorstore=None):
         vectorstore = Chroma.from_documents(
             documents=new_chunks,
             embedding=embeddings,
+            collection_name=collection_name
         )
     else:
         # If DB exists, just add the new documents

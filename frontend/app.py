@@ -3,6 +3,7 @@ from auth_utils import sign_up, login
 import tempfile
 import os
 import sys
+import uuid
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -241,6 +242,8 @@ if "chat_sessions" not in st.session_state:
     st.session_state.chat_sessions = {}
 if "current_session_name" not in st.session_state:
     st.session_state.current_session_name = "Session 1"
+if "collection_name" not in st.session_state:
+    st.session_state.collection_name = f"col_{uuid.uuid4().hex}"
 
 # This block cleans up the login/sidebar inputs by removing duplicate browser 
 # icons (like the double password eye) and hiding the 'Press Enter' hint.
@@ -364,7 +367,8 @@ with st.sidebar:
                  "uploaded_names": list(st.session_state.uploaded_names),
                  "vectorstore": st.session_state.vectorstore,
                  "chain": st.session_state.chain,
-                 "pdfs_processed": st.session_state.pdfs_processed
+                 "pdfs_processed": st.session_state.pdfs_processed,
+                 "collection_name": st.session_state.collection_name
              }
              
         if st.session_state.chat_sessions:
@@ -379,6 +383,7 @@ with st.sidebar:
                     st.session_state.vectorstore = saved["vectorstore"]
                     st.session_state.chain = saved["chain"]
                     st.session_state.pdfs_processed = saved["pdfs_processed"]
+                    st.session_state.collection_name = saved.get("collection_name", f"col_{uuid.uuid4().hex}")
                     st.rerun()
         else:
             st.caption("No chat history yet.")
@@ -422,7 +427,8 @@ with st.sidebar:
                 vectorstore = ingest_pdfs(
                     temp_paths,
                     original_names=new_names,
-                    existing_vectorstore=st.session_state.vectorstore
+                    existing_vectorstore=st.session_state.vectorstore,
+                    collection_name=st.session_state.collection_name
                 )
 
                 # Update session state
@@ -461,7 +467,8 @@ with st.sidebar:
                     "uploaded_names": list(st.session_state.uploaded_names),
                     "vectorstore": st.session_state.vectorstore,
                     "chain": st.session_state.chain,
-                    "pdfs_processed": st.session_state.pdfs_processed
+                    "pdfs_processed": st.session_state.pdfs_processed,
+                    "collection_name": st.session_state.collection_name
                 }
             
             # Switch to a fresh identity
@@ -474,6 +481,7 @@ with st.sidebar:
             st.session_state.pdfs_processed = False
             st.session_state.uploaded_names = []
             st.session_state.vectorstore = None
+            st.session_state.collection_name = f"col_{uuid.uuid4().hex}"
             st.rerun()
 
         st.markdown("<hr style='margin: 10px 0px; border-top: 1px solid #31333F;'>", unsafe_allow_html=True)
